@@ -5,6 +5,8 @@
 #include <limits.h>
 #include <errno.h>
 #include <dirent.h>
+#include <stdbool.h>
+#include <unistd.h>
 
 #define MAX_PATH_LEN 4096
 
@@ -12,9 +14,39 @@
 
 void change_directory(char *path);
 void list_files(char *path);
+bool verify_nginx();
+bool exists_file(char *name);
 
 int main(void) {
-    list_files(NGINX_DEFAULT_PATH);
+    int option;
+    change_directory(NGINX_DEFAULT_PATH);
+    while(option != 5)
+    {
+        system("clear");
+        printf("---------------------------------------------------\n");
+        printf("NGINX SITE MANNAGER -> Adán Sanchez -> https://adansanchez.dev\n");
+        printf("---------------------------------------------------\n\n");
+        printf("\n1.- List sites");
+        printf("\n2.- Create site");
+        printf("\n3.- Update site");
+        printf("\n4.- Delete site");
+        printf("\nSelect an option:");
+        scanf("%i", &option);
+
+        switch (option)
+        {
+        case 1:
+            list_files(NGINX_DEFAULT_PATH);
+            break;
+        
+        default:
+            break;
+        }
+
+
+        printf("---------------------------------------------------\n");
+    }
+
 
     return 0;
 }
@@ -51,4 +83,18 @@ void list_files(char *path){
     }
     
     closedir(directories);
+}
+
+
+bool exists_file(char *name)
+{
+    //Negates the value 'cause access returns 1 if file doesn't exists -> https://stackoverflow-com.translate.goog/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c?_x_tr_sl=en&_x_tr_tl=es&_x_tr_hl=es&_x_tr_pto=tc
+    return !access(name, F_OK);
+}
+
+bool verify_nginx()
+{
+    system("nginx -t");
+
+    return false;
 }
