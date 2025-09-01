@@ -107,7 +107,6 @@ void list_files(const char *path){
 }
 
 bool exists_file(const char *name) {
-    system("pwd");
     return access(name, F_OK) == 0;
 }
 
