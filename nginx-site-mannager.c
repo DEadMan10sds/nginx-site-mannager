@@ -10,6 +10,7 @@
 #include <limits.h>
 
 #define MAX_PATH_LEN 4096
+#define INPUT_MAX 256
 #define NGINX_DEFAULT_PATH "/etc/nginx/sites-available"
 #define NGINX_DEFAULT_PATH_SYMLINK "/etc/nginx/sites-enabled"
 #define CREATE_SITE_SCRIPT "/root/C_projects/nginx-cli/create-site.sh"
@@ -24,6 +25,8 @@ int  read_input(void);
 int  execute_bash_create_site(const char *script, const char *site, const char *port);
 void create_site(void);
 void remove_file();
+void certify_site();
+char *get_input_string(const char *question);
 
 
 int main(void) {
@@ -37,9 +40,10 @@ int main(void) {
         printf("---------------------------------------------------\n\n");
         printf("1.- List sites\n");
         printf("2.- Create site\n");
-        printf("3.- Update site\n");
-        printf("4.- Delete site\n");
-        printf("5.- Exit\n");
+        printf("3.- Certify site -> Certbot\n");
+        printf("4.- Update site\n");
+        printf("5.- Delete site\n");
+        printf("9.- Exit\n");
         printf("Select an option: ");
         option = read_input();
 
@@ -55,9 +59,10 @@ int main(void) {
                 wait_enter();
                 break;
             case 4:
-                remove_file();
+                //certbot --nginx -d $site
                 break;
             case 5:
+                remove_file();
                 break;
             default:
                 printf("Invalid option.\n");
@@ -134,17 +139,9 @@ int read_input(void) {
 
 void create_site(void)
 {
-    char site[256];
-    char port_str[16];
-
     system("clear");
-    printf("Site name: ");
-    if (!fgets(site, sizeof site, stdin)) return;
-    site[strcspn(site, "\n")] = '\0';
-
-    printf("Port: ");
-    if (!fgets(port_str, sizeof port_str, stdin)) return;
-    port_str[strcspn(port_str, "\n")] = '\0';
+    char *site = get_input_string("Site name: ");
+    char *port_str=get_input_string("Port: ");
 
     if(exists_file(site)){
         printf("There's already a site with this name");
@@ -180,7 +177,7 @@ int execute_bash_create_site(const char *script, const char *site, const char *p
     }
 
     if (pid == 0) {
-        char const *argv[] = { "bash", (char*)script, (char*)site, (char*)port, NULL };
+        char * const argv[] = { "bash", (char*)script, (char*)site, (char*)port, NULL };
         execvp("bash", argv);
         perror("execvp");
         _exit(127);
@@ -198,12 +195,10 @@ int execute_bash_create_site(const char *script, const char *site, const char *p
 
 
 void remove_file(){
-    char site[256], symlink[600];
+    char symlink[600];
     list_files(NGINX_DEFAULT_PATH);
     
-    printf("Site to delete: ");
-    if (!fgets(site, sizeof site, stdin)) return;
-    site[strcspn(site, "\n")] = '\0';
+    char *site = get_input_string("Site to delete: ");
     
     snprintf(symlink,sizeof(symlink), "%s%s", NGINX_DEFAULT_PATH_SYMLINK, site);
 
@@ -218,3 +213,42 @@ void remove_file(){
 
     return;
 }
+
+
+void certify_site()
+{
+    list_files(NGINX_DEFAULT_PATH);
+
+    char *site = get_input_string("Which site would you want to certify: ");
+    if (!site || !*site) { free(site); return; }
+
+    pid_t pid = fork();
+    if (pid < 0) { perror("fork"); free(site); return; }
+    if (pid == 0) {
+        // certbot --nginx -d <site>
+        char * const argv[] = { "certbot", "--nginx", "-d", site, NULL };
+        execvp("certbot", argv);
+        perror("execvp");
+        _exit(127);
+    }
+    int status;
+    if (waitpid(pid, &status, 0) < 0) perror("waitpid");
+    free(site);
+}
+
+char *get_input_string(const char *question)
+{
+    char *stringInput = malloc(INPUT_MAX);
+
+    printf("%s", question);
+    
+    if (!fgets(stringInput, sizeof stringInput, stdin)){
+        free(stringInput);
+        return NULL;
+    }
+
+    stringInput[strcspn(stringInput, "\n")] = '\0';
+    
+
+    return stringInput;
+} 
