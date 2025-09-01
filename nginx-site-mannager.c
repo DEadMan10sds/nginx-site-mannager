@@ -180,7 +180,7 @@ int execute_bash_create_site(const char *script, const char *site, const char *p
     }
 
     if (pid == 0) {
-        char *argv[] = { "bash", (char*)script, (char*)site, (char*)port, NULL };
+        char const *argv[] = { "bash", (char*)script, (char*)site, (char*)port, NULL };
         execvp("bash", argv);
         perror("execvp");
         _exit(127);
